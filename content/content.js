@@ -549,9 +549,20 @@
   }
 
   function onNetworkMessage(event) {
+    if (STATE.dead) return;
     if (event.source !== window) return;
     const data = event.data;
     if (!data || data.source !== "xul-net" || data.type !== "users") return;
+    // Only check runtime occasionally — message flood shouldn't call chrome APIs
+    try {
+      if (!chrome.runtime || !chrome.runtime.id) {
+        onContextDead();
+        return;
+      }
+    } catch {
+      onContextDead();
+      return;
+    }
     const n = mergeNetworkUsers(data.users);
     if (n > 0) {
       collectVisibleUsers();
