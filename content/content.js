@@ -20,17 +20,113 @@
     running: false,
     paused: false,
     abort: false,
+    dead: false,
     sessionDone: 0,
     consecutiveFailures: 0,
     settings: null,
     quota: null,
     observer: null,
+    routeTimer: null,
     lastPath: "",
     _scanScheduled: false,
   };
 
   function t(key, subs) {
     return xulT(key, subs);
+  }
+
+  function isAlive() {
+    if (STATE.dead) return false;
+    try {
+      if (typeof XULStorage !== "undefined" && XULStorage.isContextValid) {
+        if (!XULStorage.isContextValid()) {
+          onContextDead();
+          return false;
+        }
+        return true;
+      }
+      if (!chrome.runtime || !chrome.runtime.id) {
+        onContextDead();
+        return false;
+      }
+      return true;
+    } catch {
+      onContextDead();
+      return false;
+    }
+  }
+
+  function isInvalidated(err) {
+    if (!err) return false;
+    if (err.xulInvalidated) return true;
+    if (typeof XULStorage !== "undefined" && XULStorage.isInvalidatedError) {
+      return XULStorage.isInvalidatedError(err);
+    }
+    return /extension context invalidated/i.test(String(err.message || err));
+  }
+
+  /**
+   * Fired when the extension was reloaded/updated while this tab still runs
+   * the old content script. Stop all work and ask the user to refresh.
+   */
+  function onContextDead() {
+    if (STATE.dead) return;
+    STATE.dead = true;
+    STATE.abort = true;
+    STATE.running = false;
+    STATE.paused = false;
+    try {
+      if (STATE.observer) STATE.observer.disconnect();
+    } catch {
+      /* ignore */
+    }
+    STATE.observer = null;
+    if (STATE.routeTimer) {
+      clearInterval(STATE.routeTimer);
+      STATE.routeTimer = null;
+    }
+    try {
+      clearHighlights();
+    } catch {
+      /* ignore */
+    }
+    showReloadBanner();
+  }
+
+  function showReloadBanner() {
+    if (document.getElementById("xul-reload-banner")) return;
+    const bar = document.createElement("div");
+    bar.id = "xul-reload-banner";
+    bar.setAttribute("role", "status");
+    bar.textContent = t("contextDead");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = t("contextDeadReload");
+    btn.addEventListener("click", () => {
+      location.reload();
+    });
+    bar.appendChild(document.createTextNode(" "));
+    bar.appendChild(btn);
+    document.documentElement.appendChild(bar);
+
+    // Hide stale panel if present
+    const panel = document.getElementById("xul-panel");
+    const toggle = document.getElementById("xul-toggle");
+    if (panel) panel.hidden = true;
+    if (toggle) toggle.style.display = "none";
+  }
+
+  async function safeStorage(fn, fallback) {
+    if (!isAlive()) return fallback;
+    try {
+      return await fn();
+    } catch (err) {
+      if (isInvalidated(err)) {
+        onContextDead();
+        return fallback;
+      }
+      throw err;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -553,10 +649,12 @@
   }
 
   function scheduleHighlightRefresh() {
+    if (STATE.dead) return;
     if (STATE._hlScheduled) return;
     STATE._hlScheduled = true;
     requestAnimationFrame(() => {
       STATE._hlScheduled = false;
+      if (STATE.dead) return;
       applyHighlights(STATE.activeHandle);
     });
   }
@@ -566,7 +664,10 @@
     STATE._hlBound = true;
     // X rewrites Following → Unfollow on hover and may re-render the row.
     // Re-apply our classes after those micro-updates.
-    const reapply = () => scheduleHighlightRefresh();
+    const reapply = () => {
+      if (!isAlive()) return;
+      scheduleHighlightRefresh();
+    };
     document.addEventListener("pointerover", reapply, true);
     document.addEventListener("pointerout", reapply, true);
     document.addEventListener("mouseover", reapply, true);
@@ -661,6 +762,7 @@
   }
 
   async function runQueue(targets) {
+    if (!isAlive()) return;
     STATE.running = true;
     STATE.paused = false;
     STATE.abort = false;
@@ -672,6 +774,7 @@
     let index = 0;
 
     while (index < targets.length) {
+      if (STATE.dead || !isAlive()) break;
       if (STATE.abort) {
         log(t("logStopped"), "info");
         break;
@@ -696,7 +799,8 @@
         if (STATE.abort) break;
       }
 
-      STATE.quota = await XULStorage.getQuota();
+      STATE.quota = await safeStorage(() => XULStorage.getQuota(), null);
+      if (!STATE.quota || STATE.dead) break;
       STATE.settings = STATE.quota.settings;
 
       if (STATE.quota.remaining <= 0) {
@@ -717,14 +821,19 @@
 
       try {
         await unfollowOne(user, STATE.settings);
-        await XULStorage.incrementDaily(1);
+        const inc = await safeStorage(() => XULStorage.incrementDaily(1), null);
+        if (!inc || STATE.dead) break;
         STATE.sessionDone += 1;
         STATE.consecutiveFailures = 0;
         if (user.cell) stripCellHighlight(user.cell);
         STATE.users.delete(user.handle);
-        STATE.quota = await XULStorage.getQuota();
+        STATE.quota = await safeStorage(() => XULStorage.getQuota(), STATE.quota);
         log(t("logUnfollowed", [user.handle]), "ok");
       } catch (err) {
+        if (isInvalidated(err)) {
+          onContextDead();
+          break;
+        }
         STATE.consecutiveFailures += 1;
         log(String(err.message || err), "err");
         if (STATE.consecutiveFailures >= STATE.settings.maxConsecutiveFailures) {
@@ -776,6 +885,7 @@
   // ---------------------------------------------------------------------------
 
   function ensureUI() {
+    if (STATE.dead) return;
     if (document.getElementById(ROOT_ID)) return;
 
     const root = document.createElement("div");
@@ -850,6 +960,7 @@
     });
 
     panel.querySelector('[data-xul="scan"]').addEventListener("click", async () => {
+      if (!isAlive()) return;
       collectVisibleUsers();
       await refreshSettings();
       updateUI();
@@ -864,6 +975,7 @@
     });
 
     panel.querySelector('[data-xul="start"]').addEventListener("click", async () => {
+      if (!isAlive()) return;
       if (STATE.running) {
         STATE.abort = true;
         STATE.paused = false;
@@ -873,6 +985,7 @@
       }
 
       await refreshSettings();
+      if (STATE.dead) return;
       collectVisibleUsers();
       const matched = getFilteredUsers();
       if (matched.length === 0) {
@@ -890,7 +1003,8 @@
         return;
       }
 
-      STATE.quota = await XULStorage.getQuota();
+      STATE.quota = await safeStorage(() => XULStorage.getQuota(), null);
+      if (!STATE.quota || STATE.dead) return;
       const sessionCap = STATE.settings.sessionLimit || XUL_DEFAULTS.sessionLimit;
       const cap = Math.min(matched.length, STATE.quota.remaining, sessionCap);
       if (cap <= 0) {
@@ -921,13 +1035,19 @@
     const maxF = panel.querySelector('[data-xul="followersMax"]');
 
     const persistFilters = async () => {
-      STATE.settings = await XULStorage.saveSettings({
-        protectMutual: protect.checked,
-        skipUnknownFollowers: skipUnknown.checked,
-        highlightQueued: highlightQueued.checked,
-        followersMin: Number(minF.value) || 0,
-        followersMax: Number(maxF.value) || XUL_DEFAULTS.followersMax,
-      });
+      if (!isAlive()) return;
+      const next = await safeStorage(
+        () =>
+          XULStorage.saveSettings({
+            protectMutual: protect.checked,
+            skipUnknownFollowers: skipUnknown.checked,
+            highlightQueued: highlightQueued.checked,
+            followersMin: Number(minF.value) || 0,
+            followersMax: Number(maxF.value) || XUL_DEFAULTS.followersMax,
+          }),
+        null
+      );
+      if (next) STATE.settings = next;
       updateUI();
     };
 
@@ -951,6 +1071,7 @@
   }
 
   function updateUI() {
+    if (STATE.dead) return;
     const root = document.getElementById(ROOT_ID);
     if (!root) return;
 
@@ -1018,8 +1139,13 @@
   }
 
   async function refreshSettings() {
-    STATE.quota = await XULStorage.getQuota();
-    STATE.settings = STATE.quota.settings;
+    const quota = await safeStorage(() => XULStorage.getQuota(), null);
+    if (!quota) {
+      STATE.settings = STATE.settings || { ...XUL_DEFAULTS };
+      return;
+    }
+    STATE.quota = quota;
+    STATE.settings = quota.settings;
   }
 
   // ---------------------------------------------------------------------------
@@ -1027,13 +1153,16 @@
   // ---------------------------------------------------------------------------
 
   function startObserver() {
+    if (STATE.dead) return;
     if (STATE.observer) STATE.observer.disconnect();
     STATE.observer = new MutationObserver(() => {
+      if (STATE.dead || !isAlive()) return;
       if (!isFollowingPage()) return;
       if (STATE._scanScheduled) return;
       STATE._scanScheduled = true;
       requestAnimationFrame(() => {
         STATE._scanScheduled = false;
+        if (STATE.dead) return;
         collectVisibleUsers();
         updateUI();
         // Hover re-renders often mutate attributes/text without full updateUI path
@@ -1054,13 +1183,16 @@
   }
 
   function watchRoute() {
+    if (STATE.routeTimer) clearInterval(STATE.routeTimer);
     const check = async () => {
+      if (STATE.dead || !isAlive()) return;
       const path = location.pathname;
       if (path !== STATE.lastPath) {
         STATE.lastPath = path;
         if (isFollowingPage()) {
           ensureUI();
           await refreshSettings();
+          if (STATE.dead) return;
           collectVisibleUsers();
           startObserver();
           updateUI();
@@ -1075,12 +1207,16 @@
         }
       }
     };
-    setInterval(check, 800);
+    STATE.routeTimer = setInterval(check, 800);
     const wrap = (type) => {
       const orig = history[type];
       history[type] = function (...args) {
         const ret = orig.apply(this, args);
-        window.dispatchEvent(new Event("xul:nav"));
+        try {
+          window.dispatchEvent(new Event("xul:nav"));
+        } catch {
+          /* ignore */
+        }
         return ret;
       };
     };
@@ -1090,22 +1226,39 @@
     } catch {
       /* ignore */
     }
-    window.addEventListener("popstate", () => window.dispatchEvent(new Event("xul:nav")));
+    window.addEventListener("popstate", () => {
+      try {
+        window.dispatchEvent(new Event("xul:nav"));
+      } catch {
+        /* ignore */
+      }
+    });
     window.addEventListener("xul:nav", check);
   }
 
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local") return;
-    if (changes[XUL_STORAGE_KEYS.settings] || changes[XUL_STORAGE_KEYS.daily]) {
-      refreshSettings().then(updateUI);
-    }
-  });
+  try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (STATE.dead || !isAlive()) return;
+      if (area !== "local") return;
+      if (changes[XUL_STORAGE_KEYS.settings] || changes[XUL_STORAGE_KEYS.daily]) {
+        refreshSettings()
+          .then(updateUI)
+          .catch((err) => {
+            if (isInvalidated(err)) onContextDead();
+          });
+      }
+    });
+  } catch (err) {
+    if (isInvalidated(err)) onContextDead();
+  }
 
   window.addEventListener("message", onNetworkMessage);
 
   async function boot() {
+    if (!isAlive()) return;
     ensureUI();
     await refreshSettings();
+    if (STATE.dead) return;
     watchRoute();
     if (isFollowingPage()) {
       STATE.lastPath = location.pathname;

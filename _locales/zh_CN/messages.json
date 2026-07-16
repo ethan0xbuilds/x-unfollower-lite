@@ -120,6 +120,12 @@
   "badgeActive": {
     "message": "取关中…"
   },
+  "contextDead": {
+    "message": "X Unfollower Lite 已更新。请刷新本页后再继续使用。"
+  },
+  "contextDeadReload": {
+    "message": "刷新页面"
+  },
   "highlightQueued": {
     "message": "在列表中高亮待取关账号"
   },

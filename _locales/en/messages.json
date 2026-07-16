@@ -120,6 +120,12 @@
   "badgeActive": {
     "message": "Working…"
   },
+  "contextDead": {
+    "message": "X Unfollower Lite was updated. Refresh this page to continue."
+  },
+  "contextDeadReload": {
+    "message": "Refresh"
+  },
   "highlightQueued": {
     "message": "Highlight queued accounts in the list"
   },
