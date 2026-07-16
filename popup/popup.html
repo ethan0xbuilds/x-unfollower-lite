@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>X Unfollower Lite</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <img src="../icons/icon32.png" alt="" width="24" height="24" />
+      <div>
+        <h1>X Unfollower Lite</h1>
+        <p class="sub">Settings · local only</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="quota">
+        <div>
+          <div class="n" id="used">0</div>
+          <div class="k">Used today</div>
+        </div>
+        <div>
+          <div class="n" id="remaining">0</div>
+          <div class="k">Remaining</div>
+        </div>
+        <div>
+          <div class="n" id="limit">20</div>
+          <div class="k">Daily limit</div>
+        </div>
+      </div>
+      <p class="hint" id="dateHint"></p>
+    </section>
+
+    <section class="card">
+      <h2>Safety</h2>
+      <label class="field">
+        <span>Daily unfollow limit</span>
+        <input type="number" id="dailyLimit" min="1" max="100" />
+      </label>
+      <div class="row">
+        <label class="field">
+          <span>Min delay (sec)</span>
+          <input type="number" id="delayMinSec" min="2" max="60" step="1" />
+        </label>
+        <label class="field">
+          <span>Max delay (sec)</span>
+          <input type="number" id="delayMaxSec" min="3" max="120" step="1" />
+        </label>
+      </div>
+      <p class="warn">
+        Higher limits and shorter delays increase rate-limit risk. Default (20/day,
+        3–8s) is recommended for store users.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Whitelist</h2>
+      <p class="hint">Handles to never unfollow (one per line, with or without @).</p>
+      <textarea id="whitelist" rows="5" placeholder="example&#10;another_user"></textarea>
+    </section>
+
+    <section class="card">
+      <h2>Defaults on following page</h2>
+      <label class="check">
+        <input type="checkbox" id="protectMutual" />
+        Protect mutuals (“Follows you”)
+      </label>
+    </section>
+
+    <div class="actions">
+      <button type="button" id="save" class="primary">Save</button>
+    </div>
+    <p class="status" id="status" hidden></p>
+    <footer>
+      <a href="https://x.com/following" target="_blank" rel="noopener">Open X following</a>
+      ·
+      <span id="version"></span>
+    </footer>
+
+    <script src="../lib/constants.js"></script>
+    <script src="../lib/storage.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

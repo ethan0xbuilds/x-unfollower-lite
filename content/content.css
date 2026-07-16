@@ -1,0 +1,292 @@
+/* X Unfollower Lite — in-page panel (scoped under #xul-root) */
+
+#xul-root {
+  all: initial;
+  position: fixed;
+  z-index: 2147483646;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #e7e9ea;
+  box-sizing: border-box;
+}
+
+#xul-root *,
+#xul-root *::before,
+#xul-root *::after {
+  box-sizing: border-box;
+}
+
+#xul-toggle {
+  position: fixed;
+  right: 16px;
+  bottom: 88px;
+  z-index: 2147483646;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: 50%;
+  background: #1d9bf0;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  font-family: inherit;
+}
+
+#xul-toggle:hover {
+  background: #1a8cd8;
+}
+
+#xul-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 148px;
+  width: 340px;
+  max-height: min(72vh, 560px);
+  display: flex;
+  flex-direction: column;
+  background: #15202b;
+  border: 1px solid #38444d;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+#xul-panel[hidden] {
+  display: none !important;
+}
+
+#xul-panel .xul-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #38444d;
+  background: #0f1419;
+}
+
+#xul-panel .xul-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #e7e9ea;
+  margin: 0;
+}
+
+#xul-panel .xul-close {
+  background: transparent;
+  border: none;
+  color: #8b98a5;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+#xul-panel .xul-body {
+  padding: 12px 14px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+#xul-panel .xul-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+#xul-panel .xul-label {
+  color: #8b98a5;
+  font-size: 12px;
+}
+
+#xul-panel .xul-value {
+  color: #e7e9ea;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+#xul-panel .xul-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+#xul-panel .xul-stat {
+  background: #0f1419;
+  border: 1px solid #38444d;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+#xul-panel .xul-stat .n {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e7e9ea;
+}
+
+#xul-panel .xul-stat .k {
+  font-size: 11px;
+  color: #8b98a5;
+  margin-top: 2px;
+}
+
+#xul-panel .xul-section {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #2f3336;
+}
+
+#xul-panel .xul-section:last-of-type {
+  border-bottom: none;
+}
+
+#xul-panel .xul-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8b98a5;
+  margin: 0 0 8px;
+}
+
+#xul-panel label.xul-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e7e9ea;
+  cursor: pointer;
+  user-select: none;
+}
+
+#xul-panel input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #1d9bf0;
+}
+
+#xul-panel .xul-field {
+  margin-bottom: 8px;
+}
+
+#xul-panel .xul-field label {
+  display: block;
+  color: #8b98a5;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+#xul-panel .xul-field input[type="number"] {
+  width: 100%;
+  background: #0f1419;
+  border: 1px solid #38444d;
+  border-radius: 8px;
+  color: #e7e9ea;
+  padding: 8px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+#xul-panel .xul-field input[type="number"]:focus {
+  border-color: #1d9bf0;
+}
+
+#xul-panel .xul-range-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+#xul-panel .xul-hint {
+  font-size: 11px;
+  color: #8b98a5;
+  margin: 0 0 10px;
+}
+
+#xul-panel .xul-warn {
+  font-size: 11px;
+  color: #ffd400;
+  background: rgba(255, 212, 0, 0.08);
+  border: 1px solid rgba(255, 212, 0, 0.25);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 0 0 10px;
+}
+
+#xul-panel .xul-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid #38444d;
+  background: #0f1419;
+}
+
+#xul-panel .xul-btn {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+#xul-panel .xul-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#xul-panel .xul-btn-primary {
+  background: #f91880;
+  color: #fff;
+}
+
+#xul-panel .xul-btn-primary:hover:not(:disabled) {
+  background: #e01673;
+}
+
+#xul-panel .xul-btn-secondary {
+  background: #38444d;
+  color: #e7e9ea;
+}
+
+#xul-panel .xul-btn-secondary:hover:not(:disabled) {
+  background: #4a5560;
+}
+
+#xul-panel .xul-log {
+  margin-top: 8px;
+  max-height: 96px;
+  overflow-y: auto;
+  font-size: 11px;
+  color: #8b98a5;
+  background: #0f1419;
+  border-radius: 8px;
+  padding: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+#xul-panel .xul-log div {
+  margin-bottom: 2px;
+}
+
+#xul-panel .xul-log .ok {
+  color: #00ba7c;
+}
+
+#xul-panel .xul-log .err {
+  color: #f4212e;
+}
+
+#xul-panel .xul-log .info {
+  color: #1d9bf0;
+}
+
+#xul-root.xul-hidden-route #xul-toggle,
+#xul-root.xul-hidden-route #xul-panel {
+  display: none !important;
+}
