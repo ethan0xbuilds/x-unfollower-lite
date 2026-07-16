@@ -117,6 +117,9 @@
   "badgeQueued": {
     "message": "Queued"
   },
+  "badgeActive": {
+    "message": "Working…"
+  },
   "highlightQueued": {
     "message": "Highlight queued accounts in the list"
   },

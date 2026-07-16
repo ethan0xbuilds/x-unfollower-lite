@@ -117,6 +117,9 @@
   "badgeQueued": {
     "message": "待取关"
   },
+  "badgeActive": {
+    "message": "取关中…"
+  },
   "highlightQueued": {
     "message": "在列表中高亮待取关账号"
   },

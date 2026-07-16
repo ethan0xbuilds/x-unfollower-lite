@@ -321,10 +321,42 @@
     return applyNetworkHints(user);
   }
 
+  function stripFollowButtonOverlay(cell) {
+    if (!cell) return;
+    cell.querySelectorAll(".xul-queue-btn-overlay").forEach((el) => el.remove());
+    cell.querySelectorAll(".xul-queue-btn-host").forEach((el) => {
+      el.classList.remove("xul-queue-btn-host");
+    });
+  }
+
   function stripCellHighlight(cell) {
     if (!cell) return;
     cell.classList.remove("xul-highlight-match", "xul-highlight-active");
     cell.removeAttribute("data-xul-badge");
+    stripFollowButtonOverlay(cell);
+  }
+
+  /**
+   * Paint the Following / Unfollow control as "Queued" / "待取关" without
+   * rewriting X's React text nodes (overlay survives hover re-renders better).
+   */
+  function paintFollowButtonLabel(cell, label, active) {
+    const btn = findFollowingButton(cell);
+    if (!btn) return;
+    const cs = window.getComputedStyle(btn);
+    if (cs.position === "static") {
+      btn.style.position = "relative";
+    }
+    btn.classList.add("xul-queue-btn-host");
+    let ov = btn.querySelector(":scope > .xul-queue-btn-overlay");
+    if (!ov) {
+      ov = document.createElement("span");
+      ov.className = "xul-queue-btn-overlay";
+      ov.setAttribute("aria-hidden", "true");
+      btn.appendChild(ov);
+    }
+    ov.textContent = label;
+    ov.classList.toggle("xul-queue-btn-overlay--active", !!active);
   }
 
   function collectVisibleUsers() {
@@ -462,10 +494,16 @@
       .querySelectorAll(
         '[data-testid="UserCell"].xul-highlight-match, [data-testid="UserCell"].xul-highlight-active'
       )
-      .forEach((el) => {
-        el.classList.remove("xul-highlight-match", "xul-highlight-active");
-        el.removeAttribute("data-xul-badge");
-      });
+      .forEach((el) => stripCellHighlight(el));
+    // Orphan overlays if X re-created cells without our classes
+    document.querySelectorAll(".xul-queue-btn-overlay").forEach((el) => {
+      const cell = el.closest('[data-testid="UserCell"]');
+      if (!cell || !cell.classList.contains("xul-highlight-match")) {
+        const host = el.parentElement;
+        el.remove();
+        if (host) host.classList.remove("xul-queue-btn-host");
+      }
+    });
   }
 
   function applyHighlights(activeHandle) {
@@ -481,7 +519,9 @@
     }
 
     const matched = new Set(getFilteredUsers().map((u) => u.handle));
-    const badge = t("badgeQueued");
+    // Never show raw i18n keys like "badgeQueued"
+    const labelQueued = t("badgeQueued");
+    const labelActive = t("badgeActive");
     const painted = new Set();
 
     for (const handle of matched) {
@@ -494,17 +534,15 @@
       }
       if (!cell || !document.contains(cell)) continue;
 
+      const isActive = !!(activeHandle && handle === activeHandle);
       cell.classList.add("xul-highlight-match");
-      cell.setAttribute("data-xul-badge", badge);
-      if (activeHandle && handle === activeHandle) {
-        cell.classList.add("xul-highlight-active");
-      } else {
-        cell.classList.remove("xul-highlight-active");
-      }
+      cell.classList.toggle("xul-highlight-active", isActive);
+      // Cover "Following" / "正在关注" with our label (click still hits the real button)
+      paintFollowButtonLabel(cell, isActive ? labelActive : labelQueued, isActive);
       painted.add(cell);
     }
 
-    // Remove stale badges only from cells we are not painting
+    // Remove stale marks only from cells we are not painting
     document
       .querySelectorAll(
         '[data-testid="UserCell"].xul-highlight-match, [data-testid="UserCell"].xul-highlight-active'
@@ -682,10 +720,7 @@
         await XULStorage.incrementDaily(1);
         STATE.sessionDone += 1;
         STATE.consecutiveFailures = 0;
-        if (user.cell) {
-          user.cell.classList.remove("xul-highlight-match", "xul-highlight-active");
-          user.cell.removeAttribute("data-xul-badge");
-        }
+        if (user.cell) stripCellHighlight(user.cell);
         STATE.users.delete(user.handle);
         STATE.quota = await XULStorage.getQuota();
         log(t("logUnfollowed", [user.handle]), "ok");

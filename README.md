@@ -15,7 +15,7 @@ Chrome extension (Manifest V3) that helps you clean your **X (Twitter) following
 | Daily limit | Configurable (default **20**/day, local midnight reset) |
 | Session limit | Configurable (default **20**/run) |
 | Whitelist | Yes (v1) |
-| Locales | English + 简体中文 (`chrome.i18n`) |
+| Locales | English default + 简体中文 (`chrome.i18n`, follows browser language) |
 
 ## Features
 
