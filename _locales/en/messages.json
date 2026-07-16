@@ -198,6 +198,12 @@
       "LIMIT": { "content": "$1" }
     }
   },
+  "logLocating": {
+    "message": "Scrolling to find @$HANDLE$…",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
   "logUnfollowing": {
     "message": "Unfollowing @$HANDLE$…",
     "placeholders": {

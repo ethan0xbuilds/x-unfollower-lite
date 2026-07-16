@@ -369,16 +369,150 @@
     return false;
   }
 
+  function cellHandleFromDom(cell) {
+    if (!cell) return null;
+    const links = cell.querySelectorAll('a[href^="/"]');
+    for (const a of links) {
+      const href = a.getAttribute("href") || "";
+      const m = href.match(/^\/([A-Za-z0-9_]{1,15})(?:\?|$|\/)/);
+      if (!m) continue;
+      const h = m[1];
+      if (
+        /^(home|explore|search|settings|i|messages|notifications|compose|login|signup|tos|privacy|status)$/i.test(
+          h
+        )
+      ) {
+        continue;
+      }
+      // Prefer profile root links over deeper paths when both exist
+      if (href.includes("/status/")) continue;
+      return normalizeHandle(h);
+    }
+    return null;
+  }
+
   function findEligibleCellByHandle(handle) {
     const want = normalizeHandle(handle);
     if (!want) return null;
     const root = getPrimaryColumn() || document;
     const cells = root.querySelectorAll('[data-testid="UserCell"]');
     for (const cell of cells) {
-      if (!isEligibleFollowingCell(cell)) continue;
-      const user = parseUserCell(cell);
-      if (user && user.handle === want) return cell;
+      if (isOutsidePrimaryColumn(cell)) continue;
+      const h = cellHandleFromDom(cell);
+      if (h !== want) continue;
+      // Prefer eligible (Following) cells; still return if button briefly missing
+      if (findFollowingButton(cell) || isEligibleFollowingCell(cell)) return cell;
+      return cell;
     }
+    return null;
+  }
+
+  /** Scrollable timeline inside the following page primary column. */
+  function getTimelineScroller() {
+    const primary = getPrimaryColumn();
+    if (!primary) return document.scrollingElement || document.documentElement;
+
+    const all = [primary, ...primary.querySelectorAll("div")];
+    let best = null;
+    let bestScore = 0;
+    for (const el of all) {
+      try {
+        const st = window.getComputedStyle(el);
+        const oy = st.overflowY;
+        if (oy !== "auto" && oy !== "scroll" && oy !== "overlay") continue;
+        const score = el.scrollHeight - el.clientHeight;
+        if (score > bestScore && el.clientHeight > 100) {
+          bestScore = score;
+          best = el;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return best || document.scrollingElement || document.documentElement;
+  }
+
+  /**
+   * X virtualizes the following list — cells leave the DOM when scrolled away.
+   * Re-locate a user by scanning visible cells, then scrolling the timeline.
+   */
+  async function ensureUserCellVisible(handle, opts = {}) {
+    const want = normalizeHandle(handle);
+    const maxSteps = opts.maxSteps ?? 50;
+    const stepPause = opts.stepPause ?? 220;
+
+    const tryFind = () => {
+      collectVisibleUsers();
+      let cell = findEligibleCellByHandle(want);
+      if (cell && document.contains(cell)) return cell;
+      // Update STATE.users cell if found under looser match
+      const root = getPrimaryColumn() || document;
+      for (const c of root.querySelectorAll('[data-testid="UserCell"]')) {
+        if (isOutsidePrimaryColumn(c)) continue;
+        if (cellHandleFromDom(c) === want) {
+          const u = STATE.users.get(want);
+          if (u) u.cell = c;
+          return c;
+        }
+      }
+      return null;
+    };
+
+    let cell = tryFind();
+    if (cell && findFollowingButton(cell)) return cell;
+    if (cell) return cell;
+
+    const scroller = getTimelineScroller();
+
+    const scrollByPage = (dir) => {
+      const delta =
+        Math.max(280, Math.floor((scroller.clientHeight || 600) * 0.75)) * dir;
+      if (typeof scroller.scrollBy === "function") {
+        scroller.scrollBy(0, delta);
+      } else {
+        scroller.scrollTop = (scroller.scrollTop || 0) + delta;
+      }
+    };
+
+    // Pass 1: from current position downward
+    for (let i = 0; i < maxSteps; i++) {
+      if (STATE.abort || STATE.dead) return null;
+      scrollByPage(1);
+      await sleep(stepPause, () => STATE.abort || STATE.dead);
+      cell = tryFind();
+      if (cell && findFollowingButton(cell)) return cell;
+      if (cell) return cell;
+      // Stop if we cannot scroll further
+      if (
+        scroller.scrollTop + scroller.clientHeight >=
+        scroller.scrollHeight - 8
+      ) {
+        break;
+      }
+    }
+
+    // Pass 2: jump to top, scan downward again
+    scroller.scrollTop = 0;
+    await sleep(400, () => STATE.abort || STATE.dead);
+    cell = tryFind();
+    if (cell && findFollowingButton(cell)) return cell;
+    if (cell) return cell;
+
+    for (let i = 0; i < maxSteps; i++) {
+      if (STATE.abort || STATE.dead) return null;
+      scrollByPage(1);
+      await sleep(stepPause, () => STATE.abort || STATE.dead);
+      cell = tryFind();
+      if (cell && findFollowingButton(cell)) return cell;
+      if (cell) return cell;
+      if (
+        scroller.scrollTop + scroller.clientHeight >=
+        scroller.scrollHeight - 8
+      ) {
+        break;
+      }
+    }
+
     return null;
   }
 
@@ -607,6 +741,12 @@
       }
       out.push(user);
     }
+    // Prefer accounts currently in the DOM so the queue starts reliably
+    out.sort((a, b) => {
+      const aLive = a.cell && document.contains(a.cell) ? 0 : 1;
+      const bLive = b.cell && document.contains(b.cell) ? 0 : 1;
+      return aLive - bLive;
+    });
     return out;
   }
 
@@ -760,24 +900,62 @@
   }
 
   async function unfollowOne(user, settings) {
-    if (!user.cell || !document.contains(user.cell)) {
-      collectVisibleUsers();
-      const refreshed = STATE.users.get(user.handle);
-      if (refreshed) user.cell = refreshed.cell;
+    // Virtualized list: re-find cell every time (stale node refs are common)
+    let cell =
+      user.cell && document.contains(user.cell) && findFollowingButton(user.cell)
+        ? user.cell
+        : null;
+
+    if (!cell) {
+      log(t("logLocating", [user.handle]), "info");
+      cell = await ensureUserCellVisible(user.handle);
     }
 
-    if (!user.cell || !document.contains(user.cell)) {
+    if (!cell || !document.contains(cell)) {
       throw new Error(t("errNoCell", [user.handle]));
     }
 
-    user.cell.scrollIntoView({ block: "center", behavior: "smooth" });
-    await sleep(400, () => STATE.abort);
+    user.cell = cell;
+    const stored = STATE.users.get(user.handle);
+    if (stored) stored.cell = cell;
 
-    const followBtn = findFollowingButton(user.cell);
+    try {
+      cell.scrollIntoView({ block: "center", behavior: "instant" in cell ? "instant" : "auto" });
+    } catch {
+      try {
+        cell.scrollIntoView({ block: "center" });
+      } catch {
+        /* ignore */
+      }
+    }
+    await sleep(350, () => STATE.abort || STATE.dead);
+
+    // DOM may re-render after scrollIntoView
+    cell = findEligibleCellByHandle(user.handle) || cell;
+    if (!document.contains(cell)) {
+      cell = await ensureUserCellVisible(user.handle, { maxSteps: 12 });
+    }
+    if (!cell || !document.contains(cell)) {
+      throw new Error(t("errNoCell", [user.handle]));
+    }
+    user.cell = cell;
+
+    let followBtn = findFollowingButton(cell);
+    if (!followBtn) {
+      await sleep(250, () => STATE.abort);
+      followBtn = findFollowingButton(cell);
+    }
+    if (!followBtn) {
+      // Last attempt: locate again and click
+      cell = await ensureUserCellVisible(user.handle, { maxSteps: 15 });
+      if (cell) followBtn = findFollowingButton(cell);
+    }
     if (!followBtn) {
       throw new Error(t("errNoButton", [user.handle]));
     }
 
+    // Temporarily remove our overlay so the click hits X's control cleanly
+    stripFollowButtonOverlay(cell);
     followBtn.click();
     const confirmBtn = await waitForConfirmButton(settings.confirmTimeoutMs);
     if (!confirmBtn) {
@@ -786,7 +964,7 @@
     }
 
     confirmBtn.click();
-    await sleep(500, () => STATE.abort);
+    await sleep(500, () => STATE.abort || STATE.dead);
     return true;
   }
 
@@ -863,8 +1041,17 @@
           onContextDead();
           break;
         }
-        STATE.consecutiveFailures += 1;
-        log(String(err.message || err), "err");
+        const msg = String(err.message || err);
+        log(msg, "err");
+        // Missing cell is often virtualization — skip account, don't burn failure budget as hard
+        const isMissing =
+          /列表节点|not in DOM|errNoCell|scroll the list/i.test(msg) ||
+          msg.includes(user.handle) && /找不到|not found/i.test(msg);
+        if (isMissing) {
+          STATE.consecutiveFailures += 0.5;
+        } else {
+          STATE.consecutiveFailures += 1;
+        }
         if (STATE.consecutiveFailures >= STATE.settings.maxConsecutiveFailures) {
           log(t("logFailures"), "err");
           break;
