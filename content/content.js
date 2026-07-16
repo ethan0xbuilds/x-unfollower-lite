@@ -154,6 +154,54 @@
     return null;
   }
 
+  /**
+   * "Who to follow" / 推荐关注 uses the same UserCell test id.
+   * Only treat a cell as unfollow-eligible when:
+   * 1) it lives in the primary column (not right rail / aside), and
+   * 2) it has a real "Following" button (not plain "Follow").
+   */
+  function getPrimaryColumn() {
+    return document.querySelector('[data-testid="primaryColumn"]');
+  }
+
+  function isInSuggestedBlock(cell) {
+    // Walk up a bit for section headings near the cell
+    let el = cell;
+    for (let i = 0; i < 8 && el; i++) {
+      const text = (el.innerText || el.textContent || "").slice(0, 400);
+      if (
+        /who to follow|you might like|recommended|推荐关注|值得关注|おすすめユーザー|팔로우 추천/i.test(
+          text
+        )
+      ) {
+        // Heading-only match is weak if the whole column contains it; require
+        // that this subtree looks like a suggestion module (has Follow, no Following).
+        if (!findFollowingButton(cell)) return true;
+      }
+      el = el.parentElement;
+    }
+    return false;
+  }
+
+  function isEligibleFollowingCell(cell) {
+    if (!cell || !cell.isConnected) return false;
+
+    // Right rail / aside recommendations
+    if (cell.closest('aside, [role="complementary"], [data-testid="sidebarColumn"]')) {
+      return false;
+    }
+
+    const primary = getPrimaryColumn();
+    if (primary && !primary.contains(cell)) return false;
+
+    // Must already be following — sidebar suggestions only have "Follow"
+    if (!findFollowingButton(cell)) return false;
+
+    if (isInSuggestedBlock(cell)) return false;
+
+    return true;
+  }
+
   function applyNetworkHints(user) {
     if (STATE.followerCache.has(user.handle)) {
       user.followers = STATE.followerCache.get(user.handle);
@@ -207,12 +255,27 @@
     return applyNetworkHints(user);
   }
 
+  function stripCellHighlight(cell) {
+    if (!cell) return;
+    cell.classList.remove("xul-highlight-match", "xul-highlight-active");
+    cell.removeAttribute("data-xul-badge");
+  }
+
   function collectVisibleUsers() {
-    const cells = document.querySelectorAll('[data-testid="UserCell"]');
+    const root = getPrimaryColumn() || document;
+    const cells = root.querySelectorAll('[data-testid="UserCell"]');
     let added = 0;
+    const seenEligible = new Set();
+
     cells.forEach((cell) => {
+      if (!isEligibleFollowingCell(cell)) {
+        // Never leave a highlight on sidebar / suggestion cards
+        stripCellHighlight(cell);
+        return;
+      }
       const user = parseUserCell(cell);
       if (!user) return;
+      seenEligible.add(user.handle);
       const prev = STATE.users.get(user.handle);
       if (prev) {
         prev.cell = user.cell;
@@ -228,6 +291,27 @@
         added += 1;
       }
     });
+
+    // Drop wrongly ingested suggestion accounts (cell is sidebar / Follow-only)
+    for (const [handle, user] of [...STATE.users.entries()]) {
+      if (user.cell && document.contains(user.cell) && !isEligibleFollowingCell(user.cell)) {
+        stripCellHighlight(user.cell);
+        STATE.users.delete(handle);
+        continue;
+      }
+      // Keep scrolled-away following accounts (cell may be virtualized away),
+      // but drop entries that never had an eligible cell.
+      if (!seenEligible.has(handle) && user.cell && !document.contains(user.cell)) {
+        // ok — virtualized; keep metrics for filters until rescan
+        continue;
+      }
+    }
+
+    // Also scrub any stray highlights outside the primary list
+    document.querySelectorAll('[data-testid="UserCell"].xul-highlight-match').forEach((cell) => {
+      if (!isEligibleFollowingCell(cell)) stripCellHighlight(cell);
+    });
+
     return added;
   }
 
@@ -334,6 +418,7 @@
 
     for (const user of STATE.users.values()) {
       if (!user.cell || !document.contains(user.cell)) continue;
+      if (!isEligibleFollowingCell(user.cell)) continue;
       if (!matched.has(user.handle)) continue;
       user.cell.classList.add("xul-highlight-match");
       user.cell.setAttribute("data-xul-badge", badge);
