@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "X Unfollower Lite",
-  "version": "1.0.0",
-  "description": "Safely clean your X (Twitter) following list with mutual-follow protection, filters, and rate limits. All data stays on your device.",
+  "name": "__MSG_extName__",
+  "version": "1.1.0",
+  "default_locale": "en",
+  "description": "__MSG_extDescription__",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -11,7 +12,7 @@
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "X Unfollower Lite",
+    "default_title": "__MSG_actionTitle__",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -26,7 +27,12 @@
   "content_scripts": [
     {
       "matches": ["https://x.com/*", "https://twitter.com/*"],
-      "js": ["lib/constants.js", "lib/storage.js", "content/content.js"],
+      "js": [
+        "lib/constants.js",
+        "lib/storage.js",
+        "lib/i18n.js",
+        "content/content.js"
+      ],
       "css": ["content/content.css"],
       "run_at": "document_idle"
     }

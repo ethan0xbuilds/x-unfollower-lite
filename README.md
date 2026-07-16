@@ -13,18 +13,22 @@ Chrome extension (Manifest V3) that helps you clean your **X (Twitter) following
 | Main UI | In-page panel on `/username/following` |
 | Settings UI | Extension popup (daily limit, delays, whitelist) |
 | Daily limit | Configurable (default **20**/day, local midnight reset) |
+| Session limit | Configurable (default **20**/run) |
 | Whitelist | Yes (v1) |
+| Locales | English + 简体中文 (`chrome.i18n`) |
 
 ## Features
 
 - Scan visible accounts on the following page (keeps scanning as you scroll)
 - **Protect mutuals** (“Follows you”)
 - Filter by follower count range
+- Optional skip when follower count cannot be parsed
 - Serial unfollow with confirm-dialog click
 - Random delay between actions (default 3–8s) + periodic longer pauses
-- Daily quota with local persistence
+- Daily quota + per-run session cap with local persistence
 - Whitelist handles that are never unfollowed
 - Pause / stop, tab-hidden wait, consecutive failure circuit breaker
+- EN / zh-CN UI via `_locales`
 
 ## Install (developer mode)
 
@@ -35,14 +39,15 @@ Chrome extension (Manifest V3) that helps you clean your **X (Twitter) following
 
 ## Chrome Web Store notes
 
+Full copy, permission justifications, and screenshot checklist: **[STORE_LISTING.md](./STORE_LISTING.md)**.
+
 - **Single purpose:** help users manage who they follow on X via on-page filters and assisted unfollow.
 - **Permissions:** `storage` (settings + daily counter); host access to `x.com` / `twitter.com` only (content script).
 - **Privacy:** see [PRIVACY.md](./PRIVACY.md) — no remote servers, no account credentials collected by the extension.
-- Package for upload: zip the extension root (include `manifest.json`, scripts, icons; exclude `.git`).
 
 ```bash
-# Example package (from repo root)
-zip -r x-unfollower-lite.zip . -x "*.git*" -x "*.DS_Store" -x "*.zip"
+./scripts/package.sh
+# → dist/x-unfollower-lite-<version>.zip
 ```
 
 ## Project layout
@@ -64,12 +69,17 @@ PRIVACY.md
 ## Safety defaults
 
 - Daily limit: 20
+- Session (per-run) limit: 20
 - Delay: 3–8 seconds (randomized)
 - Extra pause every 5 successful unfollows
 - Stops after 3 consecutive DOM failures
 - Requires explicit confirmation before a run
 
 Raise limits only if you accept higher risk.
+
+## Repo
+
+https://github.com/ethan0xbuilds/x-unfollower-lite
 
 ## Roadmap (not v1)
 

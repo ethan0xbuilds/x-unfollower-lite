@@ -10,8 +10,8 @@
     <header>
       <img src="../icons/icon32.png" alt="" width="24" height="24" />
       <div>
-        <h1>X Unfollower Lite</h1>
-        <p class="sub">Settings · local only</p>
+        <h1 data-i18n="extName">X Unfollower Lite</h1>
+        <p class="sub" data-i18n="popupSubtitle">Settings · local only</p>
       </div>
     </header>
 
@@ -19,68 +19,80 @@
       <div class="quota">
         <div>
           <div class="n" id="used">0</div>
-          <div class="k">Used today</div>
+          <div class="k" data-i18n="usedToday">Used today</div>
         </div>
         <div>
           <div class="n" id="remaining">0</div>
-          <div class="k">Remaining</div>
+          <div class="k" data-i18n="remaining">Remaining</div>
         </div>
         <div>
           <div class="n" id="limit">20</div>
-          <div class="k">Daily limit</div>
+          <div class="k" data-i18n="dailyLimitLabel">Daily limit</div>
         </div>
       </div>
       <p class="hint" id="dateHint"></p>
     </section>
 
     <section class="card">
-      <h2>Safety</h2>
+      <h2 data-i18n="sectionSafety">Safety</h2>
       <label class="field">
-        <span>Daily unfollow limit</span>
+        <span data-i18n="dailyUnfollowLimit">Daily unfollow limit</span>
         <input type="number" id="dailyLimit" min="1" max="100" />
+      </label>
+      <label class="field">
+        <span data-i18n="sessionLimit">Per-run session limit</span>
+        <input type="number" id="sessionLimit" min="1" max="100" />
       </label>
       <div class="row">
         <label class="field">
-          <span>Min delay (sec)</span>
+          <span data-i18n="minDelaySec">Min delay (sec)</span>
           <input type="number" id="delayMinSec" min="2" max="60" step="1" />
         </label>
         <label class="field">
-          <span>Max delay (sec)</span>
+          <span data-i18n="maxDelaySec">Max delay (sec)</span>
           <input type="number" id="delayMaxSec" min="3" max="120" step="1" />
         </label>
       </div>
-      <p class="warn">
-        Higher limits and shorter delays increase rate-limit risk. Default (20/day,
-        3–8s) is recommended for store users.
+      <p class="warn" data-i18n="safetyWarn">
+        Higher limits and shorter delays increase rate-limit risk.
       </p>
     </section>
 
     <section class="card">
-      <h2>Whitelist</h2>
-      <p class="hint">Handles to never unfollow (one per line, with or without @).</p>
+      <h2 data-i18n="sectionWhitelist">Whitelist</h2>
+      <p class="hint" data-i18n="whitelistHint">
+        Handles to never unfollow (one per line, with or without @).
+      </p>
       <textarea id="whitelist" rows="5" placeholder="example&#10;another_user"></textarea>
     </section>
 
     <section class="card">
-      <h2>Defaults on following page</h2>
+      <h2 data-i18n="sectionDefaults">Defaults on following page</h2>
       <label class="check">
         <input type="checkbox" id="protectMutual" />
-        Protect mutuals (“Follows you”)
+        <span data-i18n="protectMutuals">Protect mutuals (“Follows you”)</span>
+      </label>
+      <label class="check" style="margin-top: 8px">
+        <input type="checkbox" id="skipUnknownFollowers" />
+        <span data-i18n="skipUnknownFollowers">Skip accounts when follower count cannot be read</span>
       </label>
     </section>
 
     <div class="actions">
-      <button type="button" id="save" class="primary">Save</button>
+      <button type="button" id="save" class="primary" data-i18n="save">Save</button>
     </div>
     <p class="status" id="status" hidden></p>
     <footer>
-      <a href="https://x.com/following" target="_blank" rel="noopener">Open X following</a>
+      <a href="https://x.com/following" target="_blank" rel="noopener" data-i18n="openFollowing"
+        >Open X following</a
+      >
       ·
       <span id="version"></span>
     </footer>
 
     <script src="../lib/constants.js"></script>
     <script src="../lib/storage.js"></script>
+    <script src="../lib/i18n.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

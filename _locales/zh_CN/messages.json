@@ -1,0 +1,234 @@
+{
+  "extName": {
+    "message": "X Unfollower Lite",
+    "description": "扩展名称"
+  },
+  "extDescription": {
+    "message": "安全清理 X（Twitter）关注列表：互关保护、粉丝筛选、限速取关。所有数据仅保存在本地。",
+    "description": "商店描述"
+  },
+  "actionTitle": {
+    "message": "X Unfollower Lite"
+  },
+  "popupSubtitle": {
+    "message": "设置 · 仅本地存储"
+  },
+  "usedToday": {
+    "message": "今日已用"
+  },
+  "remaining": {
+    "message": "今日剩余"
+  },
+  "dailyLimitLabel": {
+    "message": "每日上限"
+  },
+  "resetsAt": {
+    "message": "本地零点重置 · $DATE$",
+    "placeholders": {
+      "DATE": { "content": "$1" }
+    }
+  },
+  "sectionSafety": {
+    "message": "安全限速"
+  },
+  "dailyUnfollowLimit": {
+    "message": "每日取关上限"
+  },
+  "minDelaySec": {
+    "message": "最短间隔（秒）"
+  },
+  "maxDelaySec": {
+    "message": "最长间隔（秒）"
+  },
+  "sessionLimit": {
+    "message": "单次运行上限"
+  },
+  "safetyWarn": {
+    "message": "提高上限或缩短间隔会增加限流风险。建议保持默认（20/天、3–8 秒）。"
+  },
+  "sectionWhitelist": {
+    "message": "白名单"
+  },
+  "whitelistHint": {
+    "message": "永不取关的用户名（每行一个，可带或不带 @）。"
+  },
+  "sectionDefaults": {
+    "message": "关注页默认选项"
+  },
+  "protectMutuals": {
+    "message": "保护互关（显示“关注了你”）"
+  },
+  "skipUnknownFollowers": {
+    "message": "无法读取粉丝数时跳过该账号"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "saved": {
+    "message": "已保存"
+  },
+  "openFollowing": {
+    "message": "打开 X 关注列表"
+  },
+  "panelWarn": {
+    "message": "通过模拟点击页面按钮工作。过于激进可能触发账号限制，请保持保守。"
+  },
+  "statScanned": {
+    "message": "已扫描"
+  },
+  "statMatched": {
+    "message": "待取关"
+  },
+  "statTodayLeft": {
+    "message": "今日剩余"
+  },
+  "statThisRun": {
+    "message": "本次已取关"
+  },
+  "sectionFilters": {
+    "message": "筛选"
+  },
+  "minFollowers": {
+    "message": "粉丝下限"
+  },
+  "maxFollowers": {
+    "message": "粉丝上限"
+  },
+  "panelHint": {
+    "message": "白名单与每日上限：请打开扩展弹窗（工具栏图标）。"
+  },
+  "sectionLog": {
+    "message": "日志"
+  },
+  "btnRescan": {
+    "message": "重新扫描"
+  },
+  "btnPause": {
+    "message": "暂停"
+  },
+  "btnResume": {
+    "message": "继续"
+  },
+  "btnUnfollow": {
+    "message": "开始取关"
+  },
+  "btnStop": {
+    "message": "停止"
+  },
+  "logFollowingDetected": {
+    "message": "已检测到关注列表页"
+  },
+  "logRescan": {
+    "message": "扫描完成 — 已加载 $COUNT$ 个账号",
+    "placeholders": {
+      "COUNT": { "content": "$1" }
+    }
+  },
+  "logPaused": {
+    "message": "已暂停"
+  },
+  "logResumed": {
+    "message": "已继续"
+  },
+  "logStopping": {
+    "message": "正在停止…"
+  },
+  "logNoMatch": {
+    "message": "没有符合筛选的账号。请向下滚动加载更多后重新扫描。"
+  },
+  "logNoQuota": {
+    "message": "今日额度已用完。"
+  },
+  "logStartQueue": {
+    "message": "开始队列：$COUNT$ 个账号",
+    "placeholders": {
+      "COUNT": { "content": "$1" }
+    }
+  },
+  "logStopped": {
+    "message": "已由用户停止"
+  },
+  "logTabHidden": {
+    "message": "标签页不可见 — 等待重新可见"
+  },
+  "logDailyLimit": {
+    "message": "已达每日上限（$LIMIT$），已停止。",
+    "placeholders": {
+      "LIMIT": { "content": "$1" }
+    }
+  },
+  "logSessionLimit": {
+    "message": "已达单次运行上限（$LIMIT$），已停止。",
+    "placeholders": {
+      "LIMIT": { "content": "$1" }
+    }
+  },
+  "logUnfollowing": {
+    "message": "正在取关 @$HANDLE$…",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
+  "logUnfollowed": {
+    "message": "已取关 @$HANDLE$",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
+  "logFailures": {
+    "message": "连续失败次数过多 — 为安全已停止"
+  },
+  "logCooldownN": {
+    "message": "冷却 $SEC$ 秒",
+    "placeholders": {
+      "SEC": { "content": "$1" }
+    }
+  },
+  "logLongPause": {
+    "message": "拟人化长暂停约 $SEC$ 秒",
+    "placeholders": {
+      "SEC": { "content": "$1" }
+    }
+  },
+  "logFinished": {
+    "message": "队列结束"
+  },
+  "logLeftPage": {
+    "message": "已离开关注页 — 队列已中止"
+  },
+  "confirmRun": {
+    "message": "确认取关 $COUNT$ 个账号？\n\n今日剩余：$REMAIN$/$LIMIT$\n单次上限：$SESSION$\n间隔：$MIN$–$MAX$ 秒\n\n请确认你了解限流风险后再继续。",
+    "placeholders": {
+      "COUNT": { "content": "$1" },
+      "REMAIN": { "content": "$2" },
+      "LIMIT": { "content": "$3" },
+      "SESSION": { "content": "$4" },
+      "MIN": { "content": "$5" },
+      "MAX": { "content": "$6" }
+    }
+  },
+  "alertDailyLimit": {
+    "message": "X Unfollower Lite：已达每日上限（$LIMIT$）。请明天再试，或在扩展弹窗中谨慎提高上限。",
+    "placeholders": {
+      "LIMIT": { "content": "$1" }
+    }
+  },
+  "errNoCell": {
+    "message": "找不到 @$HANDLE$ 的列表节点 — 请滚动列表后重试",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
+  "errNoButton": {
+    "message": "找不到 @$HANDLE$ 的“正在关注”按钮",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
+  "errConfirmTimeout": {
+    "message": "等待 @$HANDLE$ 确认弹窗超时",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  }
+}

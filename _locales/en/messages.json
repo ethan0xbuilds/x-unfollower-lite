@@ -1,0 +1,234 @@
+{
+  "extName": {
+    "message": "X Unfollower Lite",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Safely clean your X (Twitter) following list with mutual protection, filters, and rate limits. All data stays on your device.",
+    "description": "Extension description for Chrome Web Store"
+  },
+  "actionTitle": {
+    "message": "X Unfollower Lite"
+  },
+  "popupSubtitle": {
+    "message": "Settings · local only"
+  },
+  "usedToday": {
+    "message": "Used today"
+  },
+  "remaining": {
+    "message": "Remaining"
+  },
+  "dailyLimitLabel": {
+    "message": "Daily limit"
+  },
+  "resetsAt": {
+    "message": "Resets at local midnight · $DATE$",
+    "placeholders": {
+      "DATE": { "content": "$1" }
+    }
+  },
+  "sectionSafety": {
+    "message": "Safety"
+  },
+  "dailyUnfollowLimit": {
+    "message": "Daily unfollow limit"
+  },
+  "minDelaySec": {
+    "message": "Min delay (sec)"
+  },
+  "maxDelaySec": {
+    "message": "Max delay (sec)"
+  },
+  "sessionLimit": {
+    "message": "Per-run session limit"
+  },
+  "safetyWarn": {
+    "message": "Higher limits and shorter delays increase rate-limit risk. Default (20/day, 3–8s) is recommended."
+  },
+  "sectionWhitelist": {
+    "message": "Whitelist"
+  },
+  "whitelistHint": {
+    "message": "Handles to never unfollow (one per line, with or without @)."
+  },
+  "sectionDefaults": {
+    "message": "Defaults on following page"
+  },
+  "protectMutuals": {
+    "message": "Protect mutuals (“Follows you”)"
+  },
+  "skipUnknownFollowers": {
+    "message": "Skip accounts when follower count cannot be read"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "saved": {
+    "message": "Saved"
+  },
+  "openFollowing": {
+    "message": "Open X following"
+  },
+  "panelWarn": {
+    "message": "Simulates clicks on this page. Aggressive use may risk account limits. Stay conservative."
+  },
+  "statScanned": {
+    "message": "Scanned"
+  },
+  "statMatched": {
+    "message": "Matched"
+  },
+  "statTodayLeft": {
+    "message": "Today left"
+  },
+  "statThisRun": {
+    "message": "This run"
+  },
+  "sectionFilters": {
+    "message": "Filters"
+  },
+  "minFollowers": {
+    "message": "Min followers"
+  },
+  "maxFollowers": {
+    "message": "Max followers"
+  },
+  "panelHint": {
+    "message": "Whitelist & daily limit: open the extension popup (toolbar icon)."
+  },
+  "sectionLog": {
+    "message": "Log"
+  },
+  "btnRescan": {
+    "message": "Rescan"
+  },
+  "btnPause": {
+    "message": "Pause"
+  },
+  "btnResume": {
+    "message": "Resume"
+  },
+  "btnUnfollow": {
+    "message": "Unfollow"
+  },
+  "btnStop": {
+    "message": "Stop"
+  },
+  "logFollowingDetected": {
+    "message": "Following page detected"
+  },
+  "logRescan": {
+    "message": "Rescan complete — $COUNT$ loaded",
+    "placeholders": {
+      "COUNT": { "content": "$1" }
+    }
+  },
+  "logPaused": {
+    "message": "Paused"
+  },
+  "logResumed": {
+    "message": "Resumed"
+  },
+  "logStopping": {
+    "message": "Stopping…"
+  },
+  "logNoMatch": {
+    "message": "No accounts match filters. Scroll to load more, then Rescan."
+  },
+  "logNoQuota": {
+    "message": "No remaining daily quota."
+  },
+  "logStartQueue": {
+    "message": "Starting queue: $COUNT$ account(s)",
+    "placeholders": {
+      "COUNT": { "content": "$1" }
+    }
+  },
+  "logStopped": {
+    "message": "Stopped by user"
+  },
+  "logTabHidden": {
+    "message": "Tab hidden — paused until visible"
+  },
+  "logDailyLimit": {
+    "message": "Daily limit reached ($LIMIT$). Stopped.",
+    "placeholders": {
+      "LIMIT": { "content": "$1" }
+    }
+  },
+  "logSessionLimit": {
+    "message": "Session limit reached ($LIMIT$). Stopped.",
+    "placeholders": {
+      "LIMIT": { "content": "$1" }
+    }
+  },
+  "logUnfollowing": {
+    "message": "Unfollowing @$HANDLE$…",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
+  "logUnfollowed": {
+    "message": "Unfollowed @$HANDLE$",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
+  "logFailures": {
+    "message": "Too many consecutive failures — stopping for safety"
+  },
+  "logCooldownN": {
+    "message": "Cooldown $SEC$s",
+    "placeholders": {
+      "SEC": { "content": "$1" }
+    }
+  },
+  "logLongPause": {
+    "message": "Humanization pause ~$SEC$s",
+    "placeholders": {
+      "SEC": { "content": "$1" }
+    }
+  },
+  "logFinished": {
+    "message": "Queue finished"
+  },
+  "logLeftPage": {
+    "message": "Left following page — queue aborted"
+  },
+  "confirmRun": {
+    "message": "Unfollow $COUNT$ account(s)?\n\nDaily remaining: $REMAIN$/$LIMIT$\nSession cap: $SESSION$\nDelay: $MIN$–$MAX$s\n\nOnly continue if you understand rate-limit risks.",
+    "placeholders": {
+      "COUNT": { "content": "$1" },
+      "REMAIN": { "content": "$2" },
+      "LIMIT": { "content": "$3" },
+      "SESSION": { "content": "$4" },
+      "MIN": { "content": "$5" },
+      "MAX": { "content": "$6" }
+    }
+  },
+  "alertDailyLimit": {
+    "message": "X Unfollower Lite: daily limit reached ($LIMIT$). Try again tomorrow or raise the limit in the extension popup (use carefully).",
+    "placeholders": {
+      "LIMIT": { "content": "$1" }
+    }
+  },
+  "errNoCell": {
+    "message": "User cell not in DOM for @$HANDLE$ — scroll the list and retry",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
+  "errNoButton": {
+    "message": "Following button not found for @$HANDLE$",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  },
+  "errConfirmTimeout": {
+    "message": "Confirm dialog timeout for @$HANDLE$",
+    "placeholders": {
+      "HANDLE": { "content": "$1" }
+    }
+  }
+}
