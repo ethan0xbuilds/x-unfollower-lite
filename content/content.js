@@ -1,7 +1,8 @@
 /**
  * X Unfollower Lite — content script
  * DOM sniffing + serial simulated unfollow on /following pages.
- * MVP: no GraphQL intercept, no inactive-day detection.
+ * Follower counts come mainly from page GraphQL (see inject.js) because
+ * UserCell DOM on /following usually does NOT render follower numbers.
  */
 (() => {
   "use strict";
@@ -10,6 +11,11 @@
   const STATE = {
     panelOpen: true,
     users: new Map(),
+    /** @type {Map<string, number>} handle -> followers_count from network */
+    followerCache: new Map(),
+    /** @type {Map<string, boolean>} handle -> followed_by from network */
+    followedByCache: new Map(),
+    networkHits: 0,
     running: false,
     paused: false,
     abort: false,
@@ -147,6 +153,17 @@
     return null;
   }
 
+  function applyNetworkHints(user) {
+    if (STATE.followerCache.has(user.handle)) {
+      user.followers = STATE.followerCache.get(user.handle);
+    }
+    if (STATE.followedByCache.has(user.handle)) {
+      // Prefer network mutual flag when present; keep DOM true if already true
+      user.followsYou = user.followsYou || !!STATE.followedByCache.get(user.handle);
+    }
+    return user;
+  }
+
   function parseUserCell(cell) {
     const links = cell.querySelectorAll('a[href^="/"]');
     let handle = null;
@@ -173,13 +190,20 @@
       cell.querySelector("a span span");
     name = (nameEl && nameEl.textContent) || handle;
 
-    return {
+    // DOM rarely has followers on /following; network cache is primary source.
+    let followers = extractFollowersFromCell(cell);
+    if (followers == null && STATE.followerCache.has(handle)) {
+      followers = STATE.followerCache.get(handle);
+    }
+
+    const user = {
       handle,
       name: String(name).trim(),
-      followers: extractFollowersFromCell(cell),
+      followers,
       followsYou: cellFollowsYou(cell),
       cell,
     };
+    return applyNetworkHints(user);
   }
 
   function collectVisibleUsers() {
@@ -191,8 +215,12 @@
       const prev = STATE.users.get(user.handle);
       if (prev) {
         prev.cell = user.cell;
-        prev.followsYou = user.followsYou;
-        if (user.followers !== null) prev.followers = user.followers;
+        prev.followsYou = user.followsYou || prev.followsYou;
+        if (user.followers !== null && user.followers !== undefined) {
+          prev.followers = user.followers;
+        } else if (STATE.followerCache.has(user.handle)) {
+          prev.followers = STATE.followerCache.get(user.handle);
+        }
         if (user.name) prev.name = user.name;
       } else {
         STATE.users.set(user.handle, user);
@@ -200,6 +228,60 @@
       }
     });
     return added;
+  }
+
+  function countWithFollowers() {
+    let n = 0;
+    for (const u of STATE.users.values()) {
+      if (u.followers != null) n += 1;
+    }
+    return n;
+  }
+
+  function mergeNetworkUsers(list) {
+    if (!Array.isArray(list) || !list.length) return 0;
+    let updated = 0;
+    for (const raw of list) {
+      const handle = normalizeHandle(raw && raw.handle);
+      if (!handle) continue;
+      if (typeof raw.followers === "number" && Number.isFinite(raw.followers)) {
+        const prev = STATE.followerCache.get(handle);
+        if (prev !== raw.followers) {
+          STATE.followerCache.set(handle, raw.followers);
+          updated += 1;
+        } else if (!STATE.followerCache.has(handle)) {
+          STATE.followerCache.set(handle, raw.followers);
+          updated += 1;
+        }
+      }
+      if (typeof raw.followedBy === "boolean") {
+        STATE.followedByCache.set(handle, raw.followedBy);
+      }
+      const existing = STATE.users.get(handle);
+      if (existing) {
+        if (STATE.followerCache.has(handle)) {
+          existing.followers = STATE.followerCache.get(handle);
+        }
+        if (STATE.followedByCache.has(handle)) {
+          existing.followsYou =
+            existing.followsYou || !!STATE.followedByCache.get(handle);
+        }
+        if (raw.name && !existing.name) existing.name = String(raw.name);
+      }
+    }
+    if (updated) STATE.networkHits += updated;
+    return updated;
+  }
+
+  function onNetworkMessage(event) {
+    if (event.source !== window) return;
+    const data = event.data;
+    if (!data || data.source !== "xul-net" || data.type !== "users") return;
+    const n = mergeNetworkUsers(data.users);
+    if (n > 0) {
+      collectVisibleUsers();
+      updateUI();
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -452,6 +534,7 @@
           <div class="xul-stat"><div class="n" data-xul="remaining">0</div><div class="k">${t("statTodayLeft")}</div></div>
           <div class="xul-stat"><div class="n" data-xul="session">0</div><div class="k">${t("statThisRun")}</div></div>
         </div>
+        <p class="xul-hint" data-xul="followerCoverage" style="margin-top:-4px"></p>
         <div class="xul-section">
           <p class="xul-section-title">${t("sectionFilters")}</p>
           <label class="xul-check"><input type="checkbox" data-xul="protectMutual" /> ${t("protectMutuals")}</label>
@@ -467,6 +550,7 @@
             </div>
           </div>
           <p class="xul-hint">${t("panelHint")}</p>
+          <p class="xul-hint">${t("followerDataHint")}</p>
         </div>
         <div class="xul-section">
           <p class="xul-section-title">${t("sectionLog")}</p>
@@ -516,7 +600,16 @@
       collectVisibleUsers();
       const matched = getFilteredUsers();
       if (matched.length === 0) {
-        log(t("logNoMatch"), "err");
+        const withF = countWithFollowers();
+        if (
+          STATE.settings?.skipUnknownFollowers &&
+          STATE.users.size > 0 &&
+          withF === 0
+        ) {
+          log(t("logNoFollowerData"), "err");
+        } else {
+          log(t("logNoMatch"), "err");
+        }
         updateUI();
         return;
       }
@@ -598,6 +691,17 @@
     setText("matched", matched.length);
     setText("remaining", STATE.quota ? STATE.quota.remaining : "–");
     setText("session", STATE.sessionDone);
+
+    const cov = panel.querySelector('[data-xul="followerCoverage"]');
+    if (cov) {
+      const withF = countWithFollowers();
+      const total = STATE.users.size;
+      cov.textContent = t("followerCoverage", [
+        String(withF),
+        String(total),
+        String(STATE.followerCache.size),
+      ]);
+    }
 
     const protect = panel.querySelector('[data-xul="protectMutual"]');
     const skipUnknown = panel.querySelector('[data-xul="skipUnknown"]');
@@ -701,6 +805,8 @@
     }
   });
 
+  window.addEventListener("message", onNetworkMessage);
+
   async function boot() {
     ensureUI();
     await refreshSettings();
@@ -711,6 +817,9 @@
       startObserver();
       updateUI();
       log(t("logFollowingDetected"), "info");
+      if (STATE.followerCache.size === 0) {
+        log(t("logWaitingFollowerData"), "info");
+      }
     } else {
       updateUI();
     }

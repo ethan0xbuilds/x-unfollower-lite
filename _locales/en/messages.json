@@ -61,6 +61,23 @@
   "skipUnknownFollowers": {
     "message": "Skip accounts when follower count cannot be read"
   },
+  "followerDataHint": {
+    "message": "Follower counts are not shown in the list UI; they are filled from X’s own page requests as you scroll. Hard-refresh the following page after updating the extension."
+  },
+  "followerCoverage": {
+    "message": "Follower data: $KNOWN$ / $TOTAL$ scanned (cache $CACHE$)",
+    "placeholders": {
+      "KNOWN": { "content": "$1" },
+      "TOTAL": { "content": "$2" },
+      "CACHE": { "content": "$3" }
+    }
+  },
+  "logNoFollowerData": {
+    "message": "No follower counts yet. Scroll the list (or refresh the page) so X loads data, then Rescan. “Skip unknown” needs this data."
+  },
+  "logWaitingFollowerData": {
+    "message": "Waiting for follower counts from page network data — scroll to load more accounts."
+  },
   "save": {
     "message": "Save"
   },

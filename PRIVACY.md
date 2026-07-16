@@ -7,6 +7,7 @@ X Unfollower Lite (“the Extension”) is designed to process data **only on yo
 ## What the Extension accesses
 
 - Pages on `https://x.com/*` and `https://twitter.com/*` so it can read the **following list UI** you already see in the browser and simulate button clicks you could perform yourself.
+- It may observe **responses already returned to your browser tab** by X (for example GraphQL payloads used to render the following list) in order to read public profile metrics such as follower counts. This stays inside your browser session and is not uploaded by the Extension.
 - It does **not** ask you for your X password.
 - It does **not** call a third-party backend operated by us.
 

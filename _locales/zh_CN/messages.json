@@ -61,6 +61,23 @@
   "skipUnknownFollowers": {
     "message": "无法读取粉丝数时跳过该账号"
   },
+  "followerDataHint": {
+    "message": "关注列表界面本身通常不显示粉丝数；扩展会从页面加载列表时的接口数据中补齐。更新扩展后请强制刷新关注页。"
+  },
+  "followerCoverage": {
+    "message": "粉丝数据：$KNOWN$ / $TOTAL$ 已扫描（缓存 $CACHE$）",
+    "placeholders": {
+      "KNOWN": { "content": "$1" },
+      "TOTAL": { "content": "$2" },
+      "CACHE": { "content": "$3" }
+    }
+  },
+  "logNoFollowerData": {
+    "message": "还没有粉丝数数据。请向下滚动列表（或刷新页面）让 X 加载数据，再点重新扫描。「跳过无法读取」依赖这些数据。"
+  },
+  "logWaitingFollowerData": {
+    "message": "正在等待页面接口返回粉丝数 — 请向下滚动加载更多账号。"
+  },
   "save": {
     "message": "保存"
   },

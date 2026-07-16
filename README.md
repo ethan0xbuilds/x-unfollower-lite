@@ -8,7 +8,7 @@ Chrome extension (Manifest V3) that helps you clean your **X (Twitter) following
 
 | Topic | Choice |
 |--------|--------|
-| Data source | DOM sniffing only (no GraphQL intercept) |
+| Data source | DOM for UI actions; passive GraphQL/API sniff for follower counts |
 | Inactive detection | Deferred (not in v1) |
 | Main UI | In-page panel on `/username/following` |
 | Settings UI | Extension popup (daily limit, delays, whitelist) |
