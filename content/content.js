@@ -129,43 +129,100 @@
     return false;
   }
 
+  /**
+   * True when the control means "already following".
+   * Important: X rewrites the button to "Unfollow" on hover — that is still following.
+   */
+  function isFollowingStateButton(btn) {
+    if (!btn) return false;
+    const testId = (btn.getAttribute("data-testid") || "").toLowerCase();
+    // X often uses data-testid="-unfollow" while already following
+    if (testId.includes("unfollow")) return true;
+    if (testId.includes("following")) return true;
+
+    const aria = (btn.getAttribute("aria-label") || "").trim();
+    const text = (btn.textContent || "").replace(/\s+/g, " ").trim();
+    const label = aria || text;
+
+    // Hover state of Following button
+    if (/^unfollow\b/i.test(label) || /取消关注|フォロー解除|언팔로우/i.test(label)) {
+      return true;
+    }
+    // Normal following state
+    if (/^following\b/i.test(label) || /正在关注|フォロー中|팔로잉/i.test(label)) {
+      return true;
+    }
+    if (/^(Following|Unfollow)$/i.test(text)) return true;
+    if (
+      text === "正在关注" ||
+      text === "取消关注" ||
+      text === "フォロー中" ||
+      text === "フォロー解除" ||
+      text === "팔로잉" ||
+      text === "언팔로우"
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  function isPlainFollowButton(btn) {
+    if (!btn || isFollowingStateButton(btn)) return false;
+    const testId = (btn.getAttribute("data-testid") || "").toLowerCase();
+    if (testId.includes("unfollow") || testId.includes("following")) return false;
+    const label = (
+      btn.getAttribute("aria-label") ||
+      btn.textContent ||
+      ""
+    )
+      .replace(/\s+/g, " ")
+      .trim();
+    // "Follow" / "关注" but not "Following" / "正在关注"
+    if (/^follow\b/i.test(label) && !/^following\b/i.test(label)) return true;
+    if (/^(关注|フォロー|팔로우)$/i.test(label) && !/正在关注|フォロー中|팔로잉/i.test(label)) {
+      return true;
+    }
+    return false;
+  }
+
   function findFollowingButton(cell) {
     const buttons = cell.querySelectorAll('[role="button"], button');
     for (const btn of buttons) {
-      const label = (
-        btn.getAttribute("aria-label") ||
-        btn.textContent ||
-        ""
-      ).trim();
-      if (/^following\b/i.test(label) || /^正在关注|^フォロー中|^팔로잉/i.test(label)) {
-        if (/^follow\b/i.test(label) && !/^following\b/i.test(label)) continue;
-        return btn;
-      }
-      const inner = (btn.textContent || "").trim();
-      if (
-        /^Following$/i.test(inner) ||
-        inner === "正在关注" ||
-        inner === "フォロー中" ||
-        inner === "팔로잉"
-      ) {
-        return btn;
-      }
+      if (isFollowingStateButton(btn)) return btn;
     }
     return null;
+  }
+
+  function hasPlainFollowOnly(cell) {
+    const buttons = cell.querySelectorAll('[role="button"], button');
+    let plain = false;
+    for (const btn of buttons) {
+      if (isFollowingStateButton(btn)) return false;
+      if (isPlainFollowButton(btn)) plain = true;
+    }
+    return plain;
   }
 
   /**
    * "Who to follow" / 推荐关注 uses the same UserCell test id.
    * Only treat a cell as unfollow-eligible when:
    * 1) it lives in the primary column (not right rail / aside), and
-   * 2) it has a real "Following" button (not plain "Follow").
+   * 2) it has Following or hover-Unfollow (not plain Follow).
    */
   function getPrimaryColumn() {
     return document.querySelector('[data-testid="primaryColumn"]');
   }
 
+  function isOutsidePrimaryColumn(cell) {
+    if (cell.closest('aside, [role="complementary"], [data-testid="sidebarColumn"]')) {
+      return true;
+    }
+    const primary = getPrimaryColumn();
+    if (primary && !primary.contains(cell)) return true;
+    return false;
+  }
+
   function isInSuggestedBlock(cell) {
-    // Walk up a bit for section headings near the cell
     let el = cell;
     for (let i = 0; i < 8 && el; i++) {
       const text = (el.innerText || el.textContent || "").slice(0, 400);
@@ -174,9 +231,7 @@
           text
         )
       ) {
-        // Heading-only match is weak if the whole column contains it; require
-        // that this subtree looks like a suggestion module (has Follow, no Following).
-        if (!findFollowingButton(cell)) return true;
+        if (hasPlainFollowOnly(cell) || !findFollowingButton(cell)) return true;
       }
       el = el.parentElement;
     }
@@ -185,21 +240,32 @@
 
   function isEligibleFollowingCell(cell) {
     if (!cell || !cell.isConnected) return false;
-
-    // Right rail / aside recommendations
-    if (cell.closest('aside, [role="complementary"], [data-testid="sidebarColumn"]')) {
-      return false;
-    }
-
-    const primary = getPrimaryColumn();
-    if (primary && !primary.contains(cell)) return false;
-
-    // Must already be following — sidebar suggestions only have "Follow"
+    if (isOutsidePrimaryColumn(cell)) return false;
+    // Must already be following (Following, or Unfollow hover state)
     if (!findFollowingButton(cell)) return false;
-
     if (isInSuggestedBlock(cell)) return false;
-
     return true;
+  }
+
+  /** Sidebar / pure Follow cards — safe to drop. Not used for hover glitches. */
+  function isClearlySuggestionCell(cell) {
+    if (!cell || !cell.isConnected) return false;
+    if (isOutsidePrimaryColumn(cell)) return true;
+    if (hasPlainFollowOnly(cell)) return true;
+    return false;
+  }
+
+  function findEligibleCellByHandle(handle) {
+    const want = normalizeHandle(handle);
+    if (!want) return null;
+    const root = getPrimaryColumn() || document;
+    const cells = root.querySelectorAll('[data-testid="UserCell"]');
+    for (const cell of cells) {
+      if (!isEligibleFollowingCell(cell)) continue;
+      const user = parseUserCell(cell);
+      if (user && user.handle === want) return cell;
+    }
+    return null;
   }
 
   function applyNetworkHints(user) {
@@ -269,8 +335,8 @@
 
     cells.forEach((cell) => {
       if (!isEligibleFollowingCell(cell)) {
-        // Never leave a highlight on sidebar / suggestion cards
-        stripCellHighlight(cell);
+        // Only scrub clear suggestions (sidebar / Follow-only) — never on hover glitches
+        if (isClearlySuggestionCell(cell)) stripCellHighlight(cell);
         return;
       }
       const user = parseUserCell(cell);
@@ -292,24 +358,20 @@
       }
     });
 
-    // Drop wrongly ingested suggestion accounts (cell is sidebar / Follow-only)
+    // Drop only clear false positives (sidebar / Follow-only), not hover "Unfollow" state
     for (const [handle, user] of [...STATE.users.entries()]) {
-      if (user.cell && document.contains(user.cell) && !isEligibleFollowingCell(user.cell)) {
+      if (
+        user.cell &&
+        document.contains(user.cell) &&
+        isClearlySuggestionCell(user.cell)
+      ) {
         stripCellHighlight(user.cell);
         STATE.users.delete(handle);
-        continue;
-      }
-      // Keep scrolled-away following accounts (cell may be virtualized away),
-      // but drop entries that never had an eligible cell.
-      if (!seenEligible.has(handle) && user.cell && !document.contains(user.cell)) {
-        // ok — virtualized; keep metrics for filters until rescan
-        continue;
       }
     }
 
-    // Also scrub any stray highlights outside the primary list
     document.querySelectorAll('[data-testid="UserCell"].xul-highlight-match').forEach((cell) => {
-      if (!isEligibleFollowingCell(cell)) stripCellHighlight(cell);
+      if (isClearlySuggestionCell(cell)) stripCellHighlight(cell);
     });
 
     return added;
@@ -407,25 +469,72 @@
   }
 
   function applyHighlights(activeHandle) {
-    clearHighlights();
-    if (!isFollowingPage()) return;
+    if (!isFollowingPage()) {
+      clearHighlights();
+      return;
+    }
 
     const s = STATE.settings || XUL_DEFAULTS;
-    if (!s.highlightQueued) return;
+    if (!s.highlightQueued) {
+      clearHighlights();
+      return;
+    }
 
     const matched = new Set(getFilteredUsers().map((u) => u.handle));
     const badge = t("badgeQueued");
+    const painted = new Set();
 
-    for (const user of STATE.users.values()) {
-      if (!user.cell || !document.contains(user.cell)) continue;
-      if (!isEligibleFollowingCell(user.cell)) continue;
-      if (!matched.has(user.handle)) continue;
-      user.cell.classList.add("xul-highlight-match");
-      user.cell.setAttribute("data-xul-badge", badge);
-      if (activeHandle && user.handle === activeHandle) {
-        user.cell.classList.add("xul-highlight-active");
+    for (const handle of matched) {
+      const user = STATE.users.get(handle);
+      let cell = user && user.cell && document.contains(user.cell) ? user.cell : null;
+      // Re-resolve when X re-renders the row on hover
+      if (!cell || !isEligibleFollowingCell(cell)) {
+        cell = findEligibleCellByHandle(handle);
+        if (user && cell) user.cell = cell;
       }
+      if (!cell || !document.contains(cell)) continue;
+
+      cell.classList.add("xul-highlight-match");
+      cell.setAttribute("data-xul-badge", badge);
+      if (activeHandle && handle === activeHandle) {
+        cell.classList.add("xul-highlight-active");
+      } else {
+        cell.classList.remove("xul-highlight-active");
+      }
+      painted.add(cell);
     }
+
+    // Remove stale badges only from cells we are not painting
+    document
+      .querySelectorAll(
+        '[data-testid="UserCell"].xul-highlight-match, [data-testid="UserCell"].xul-highlight-active'
+      )
+      .forEach((el) => {
+        if (!painted.has(el)) stripCellHighlight(el);
+      });
+  }
+
+  function scheduleHighlightRefresh() {
+    if (STATE._hlScheduled) return;
+    STATE._hlScheduled = true;
+    requestAnimationFrame(() => {
+      STATE._hlScheduled = false;
+      applyHighlights(STATE.activeHandle);
+    });
+  }
+
+  function bindHighlightPersistence() {
+    if (STATE._hlBound) return;
+    STATE._hlBound = true;
+    // X rewrites Following → Unfollow on hover and may re-render the row.
+    // Re-apply our classes after those micro-updates.
+    const reapply = () => scheduleHighlightRefresh();
+    document.addEventListener("pointerover", reapply, true);
+    document.addEventListener("pointerout", reapply, true);
+    document.addEventListener("mouseover", reapply, true);
+    document.addEventListener("mouseout", reapply, true);
+    document.addEventListener("focusin", reapply, true);
+    document.addEventListener("focusout", reapply, true);
   }
 
   // ---------------------------------------------------------------------------
@@ -892,11 +1001,21 @@
         STATE._scanScheduled = false;
         collectVisibleUsers();
         updateUI();
+        // Hover re-renders often mutate attributes/text without full updateUI path
+        scheduleHighlightRefresh();
       });
     });
     if (document.body) {
-      STATE.observer.observe(document.body, { childList: true, subtree: true });
+      STATE.observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        // Button label Following → Unfollow is often a characterData/attribute change
+        characterData: true,
+        attributes: true,
+        attributeFilter: ["aria-label", "class", "data-testid"],
+      });
     }
+    bindHighlightPersistence();
   }
 
   function watchRoute() {

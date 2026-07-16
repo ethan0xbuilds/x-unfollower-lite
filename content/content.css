@@ -292,40 +292,48 @@
 }
 
 /* ---- Highlight queued (to-unfollow) rows on X following list ---- */
-[data-testid="UserCell"].xul-highlight-match {
+/* Include :hover — X paints its own hover background and used to hide our styles */
+[data-testid="UserCell"].xul-highlight-match,
+[data-testid="UserCell"].xul-highlight-match:hover,
+[data-testid="UserCell"].xul-highlight-match:focus-within {
   outline: 2px solid #f91880 !important;
   outline-offset: -2px !important;
   border-radius: 12px !important;
-  background-color: rgba(249, 24, 128, 0.1) !important;
+  background-color: rgba(249, 24, 128, 0.12) !important;
   position: relative !important;
   box-shadow: inset 4px 0 0 #f91880 !important;
 }
 
-[data-testid="UserCell"].xul-highlight-match::after {
+[data-testid="UserCell"].xul-highlight-match::after,
+[data-testid="UserCell"].xul-highlight-match:hover::after {
   content: attr(data-xul-badge);
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 5;
+  z-index: 20;
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
   line-height: 1.4;
-  color: #fff;
-  background: #f91880;
+  color: #fff !important;
+  background: #f91880 !important;
   pointer-events: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 /* Currently processing during a run */
-[data-testid="UserCell"].xul-highlight-active {
+[data-testid="UserCell"].xul-highlight-active,
+[data-testid="UserCell"].xul-highlight-active:hover {
   outline-color: #1d9bf0 !important;
   box-shadow: inset 4px 0 0 #1d9bf0 !important;
-  background-color: rgba(29, 155, 240, 0.12) !important;
+  background-color: rgba(29, 155, 240, 0.14) !important;
 }
 
-[data-testid="UserCell"].xul-highlight-active::after {
-  background: #1d9bf0;
+[data-testid="UserCell"].xul-highlight-active::after,
+[data-testid="UserCell"].xul-highlight-active:hover::after {
+  background: #1d9bf0 !important;
 }
