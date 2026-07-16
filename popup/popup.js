@@ -4,25 +4,38 @@
   const $ = (id) => document.getElementById(id);
 
   async function load() {
-    xulApplyI18n(document);
+    try {
+      xulApplyI18n(document);
 
-    const quota = await XULStorage.getQuota();
-    const s = quota.settings;
+      if (!XULStorage.isContextValid()) {
+        $("status").hidden = false;
+        $("status").style.color = "#f4212e";
+        $("status").textContent = xulT("contextDead");
+        return;
+      }
 
-    $("used").textContent = String(quota.used);
-    $("remaining").textContent = String(quota.remaining);
-    $("limit").textContent = String(quota.limit);
-    $("dateHint").textContent = xulT("resetsAt", [quota.daily.date]);
+      const quota = await XULStorage.getQuota();
+      const s = quota.settings;
 
-    $("dailyLimit").value = String(s.dailyLimit);
-    $("sessionLimit").value = String(s.sessionLimit);
-    $("delayMinSec").value = String(Math.round(s.delayMinMs / 1000));
-    $("delayMaxSec").value = String(Math.round(s.delayMaxMs / 1000));
-    $("whitelist").value = (s.whitelist || []).join("\n");
-    $("protectMutual").checked = !!s.protectMutual;
-    $("skipUnknownFollowers").checked = !!s.skipUnknownFollowers;
+      $("used").textContent = String(quota.used);
+      $("remaining").textContent = String(quota.remaining);
+      $("limit").textContent = String(quota.limit);
+      $("dateHint").textContent = xulT("resetsAt", [quota.daily.date]);
 
-    $("version").textContent = `v${chrome.runtime.getManifest().version}`;
+      $("dailyLimit").value = String(s.dailyLimit);
+      $("sessionLimit").value = String(s.sessionLimit);
+      $("delayMinSec").value = String(Math.round(s.delayMinMs / 1000));
+      $("delayMaxSec").value = String(Math.round(s.delayMaxMs / 1000));
+      $("whitelist").value = (s.whitelist || []).join("\n");
+      $("protectMutual").checked = !!s.protectMutual;
+      $("skipUnknownFollowers").checked = !!s.skipUnknownFollowers;
+
+      $("version").textContent = `v${chrome.runtime.getManifest().version}`;
+    } catch (e) {
+      $("status").hidden = false;
+      $("status").style.color = "#f4212e";
+      $("status").textContent = String(e.message || e);
+    }
   }
 
   async function save() {

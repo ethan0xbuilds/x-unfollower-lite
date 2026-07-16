@@ -117,17 +117,35 @@
   }
 
   async function safeStorage(fn, fallback) {
-    if (!isAlive()) return fallback;
+    if (STATE.dead) return fallback;
+    // Prefer soft path: storage layer no longer throws on context death
     try {
-      return await fn();
+      if (!XULStorage.isContextValid()) {
+        onContextDead();
+        return fallback;
+      }
+      const result = await fn();
+      if (!XULStorage.isContextValid()) {
+        onContextDead();
+      }
+      return result;
     } catch (err) {
       if (isInvalidated(err)) {
         onContextDead();
         return fallback;
       }
-      throw err;
+      // Never let storage failures crash the content script
+      return fallback;
     }
   }
+
+  // Last resort: silence orphaned async work from a dead extension context
+  window.addEventListener("unhandledrejection", (event) => {
+    if (isInvalidated(event.reason)) {
+      event.preventDefault();
+      onContextDead();
+    }
+  });
 
   // ---------------------------------------------------------------------------
   // Route helpers
@@ -1286,8 +1304,14 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", boot);
+    document.addEventListener("DOMContentLoaded", () => {
+      boot().catch(() => {
+        /* boot soft-fails when context is dead */
+      });
+    });
   } else {
-    boot();
+    boot().catch(() => {
+      /* boot soft-fails when context is dead */
+    });
   }
 })();
