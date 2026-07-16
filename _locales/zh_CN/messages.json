@@ -103,13 +103,22 @@
     "message": "本次已取关"
   },
   "sectionFilters": {
-    "message": "筛选"
+    "message": "筛选（命中的会进待取关）"
   },
   "minFollowers": {
-    "message": "粉丝下限"
+    "message": "粉丝数 ≥"
   },
   "maxFollowers": {
-    "message": "粉丝上限"
+    "message": "粉丝数 ≤"
+  },
+  "followersRangeHint": {
+    "message": "只取关粉丝数落在「≥ 下限 且 ≤ 上限」区间内的账号。例如 0～500 = 只清小号；默认 0～很大 = 不按粉丝数限制。"
+  },
+  "badgeQueued": {
+    "message": "待取关"
+  },
+  "highlightQueued": {
+    "message": "在列表中高亮待取关账号"
   },
   "panelHint": {
     "message": "白名单与每日上限：请打开扩展弹窗（工具栏图标）。"

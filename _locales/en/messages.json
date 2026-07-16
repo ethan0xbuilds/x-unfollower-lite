@@ -103,13 +103,22 @@
     "message": "This run"
   },
   "sectionFilters": {
-    "message": "Filters"
+    "message": "Filters (matched = unfollow queue)"
   },
   "minFollowers": {
-    "message": "Min followers"
+    "message": "Followers ≥"
   },
   "maxFollowers": {
-    "message": "Max followers"
+    "message": "Followers ≤"
+  },
+  "followersRangeHint": {
+    "message": "Only accounts whose follower count is between min and max enter the queue. Example: 0–500 = small accounts only. Default 0–very large = no follower-size limit."
+  },
+  "badgeQueued": {
+    "message": "Queued"
+  },
+  "highlightQueued": {
+    "message": "Highlight queued accounts in the list"
   },
   "panelHint": {
     "message": "Whitelist & daily limit: open the extension popup (toolbar icon)."

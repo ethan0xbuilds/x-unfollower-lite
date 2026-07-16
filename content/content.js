@@ -16,6 +16,7 @@
     /** @type {Map<string, boolean>} handle -> followed_by from network */
     followedByCache: new Map(),
     networkHits: 0,
+    activeHandle: null,
     running: false,
     paused: false,
     abort: false,
@@ -306,6 +307,42 @@
     return out;
   }
 
+  /**
+   * Highlight UserCells that match the current unfollow filters.
+   * Follower min/max = only accounts IN that range are queued (and highlighted).
+   */
+  function clearHighlights() {
+    document
+      .querySelectorAll(
+        '[data-testid="UserCell"].xul-highlight-match, [data-testid="UserCell"].xul-highlight-active'
+      )
+      .forEach((el) => {
+        el.classList.remove("xul-highlight-match", "xul-highlight-active");
+        el.removeAttribute("data-xul-badge");
+      });
+  }
+
+  function applyHighlights(activeHandle) {
+    clearHighlights();
+    if (!isFollowingPage()) return;
+
+    const s = STATE.settings || XUL_DEFAULTS;
+    if (!s.highlightQueued) return;
+
+    const matched = new Set(getFilteredUsers().map((u) => u.handle));
+    const badge = t("badgeQueued");
+
+    for (const user of STATE.users.values()) {
+      if (!user.cell || !document.contains(user.cell)) continue;
+      if (!matched.has(user.handle)) continue;
+      user.cell.classList.add("xul-highlight-match");
+      user.cell.setAttribute("data-xul-badge", badge);
+      if (activeHandle && user.handle === activeHandle) {
+        user.cell.classList.add("xul-highlight-active");
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Unfollow engine
   // ---------------------------------------------------------------------------
@@ -442,6 +479,8 @@
       }
 
       const user = targets[index];
+      STATE.activeHandle = user.handle;
+      applyHighlights(user.handle);
       log(t("logUnfollowing", [user.handle]), "info");
 
       try {
@@ -449,6 +488,10 @@
         await XULStorage.incrementDaily(1);
         STATE.sessionDone += 1;
         STATE.consecutiveFailures = 0;
+        if (user.cell) {
+          user.cell.classList.remove("xul-highlight-match", "xul-highlight-active");
+          user.cell.removeAttribute("data-xul-badge");
+        }
         STATE.users.delete(user.handle);
         STATE.quota = await XULStorage.getQuota();
         log(t("logUnfollowed", [user.handle]), "ok");
@@ -461,6 +504,7 @@
         }
       }
 
+      STATE.activeHandle = null;
       updateUI();
       index += 1;
       if (index >= targets.length || STATE.abort) break;
@@ -493,6 +537,7 @@
 
     STATE.running = false;
     STATE.paused = false;
+    STATE.activeHandle = null;
     updateUI();
     log(t("logFinished"), "info");
   }
@@ -539,6 +584,7 @@
           <p class="xul-section-title">${t("sectionFilters")}</p>
           <label class="xul-check"><input type="checkbox" data-xul="protectMutual" /> ${t("protectMutuals")}</label>
           <label class="xul-check" style="margin-top:8px"><input type="checkbox" data-xul="skipUnknown" /> ${t("skipUnknownFollowers")}</label>
+          <label class="xul-check" style="margin-top:8px"><input type="checkbox" data-xul="highlightQueued" /> ${t("highlightQueued")}</label>
           <div class="xul-range-grid" style="margin-top:10px">
             <div class="xul-field">
               <label>${t("minFollowers")}</label>
@@ -549,6 +595,7 @@
               <input type="number" min="0" data-xul="followersMax" />
             </div>
           </div>
+          <p class="xul-hint">${t("followersRangeHint")}</p>
           <p class="xul-hint">${t("panelHint")}</p>
           <p class="xul-hint">${t("followerDataHint")}</p>
         </div>
@@ -640,6 +687,7 @@
 
     const protect = panel.querySelector('[data-xul="protectMutual"]');
     const skipUnknown = panel.querySelector('[data-xul="skipUnknown"]');
+    const highlightQueued = panel.querySelector('[data-xul="highlightQueued"]');
     const minF = panel.querySelector('[data-xul="followersMin"]');
     const maxF = panel.querySelector('[data-xul="followersMax"]');
 
@@ -647,6 +695,7 @@
       STATE.settings = await XULStorage.saveSettings({
         protectMutual: protect.checked,
         skipUnknownFollowers: skipUnknown.checked,
+        highlightQueued: highlightQueued.checked,
         followersMin: Number(minF.value) || 0,
         followersMax: Number(maxF.value) || XUL_DEFAULTS.followersMax,
       });
@@ -655,6 +704,7 @@
 
     protect.addEventListener("change", persistFilters);
     skipUnknown.addEventListener("change", persistFilters);
+    highlightQueued.addEventListener("change", persistFilters);
     minF.addEventListener("change", persistFilters);
     maxF.addEventListener("change", persistFilters);
   }
@@ -705,6 +755,7 @@
 
     const protect = panel.querySelector('[data-xul="protectMutual"]');
     const skipUnknown = panel.querySelector('[data-xul="skipUnknown"]');
+    const highlightQueued = panel.querySelector('[data-xul="highlightQueued"]');
     const minF = panel.querySelector('[data-xul="followersMin"]');
     const maxF = panel.querySelector('[data-xul="followersMax"]');
     if (STATE.settings && protect && document.activeElement !== protect) {
@@ -712,6 +763,9 @@
     }
     if (STATE.settings && skipUnknown && document.activeElement !== skipUnknown) {
       skipUnknown.checked = !!STATE.settings.skipUnknownFollowers;
+    }
+    if (STATE.settings && highlightQueued && document.activeElement !== highlightQueued) {
+      highlightQueued.checked = STATE.settings.highlightQueued !== false;
     }
     if (STATE.settings && minF && document.activeElement !== minF) {
       minF.value = String(STATE.settings.followersMin);
@@ -730,6 +784,8 @@
       pauseBtn.disabled = !STATE.running;
       pauseBtn.textContent = STATE.paused ? t("btnResume") : t("btnPause");
     }
+
+    applyHighlights(STATE.activeHandle);
   }
 
   async function refreshSettings() {
@@ -775,6 +831,7 @@
             STATE.abort = true;
             log(t("logLeftPage"), "info");
           }
+          clearHighlights();
           updateUI();
         }
       }
